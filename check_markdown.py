@@ -70,13 +70,24 @@ def check_blanks_around_fences(text):
 
 def check_code_language(text):
     """檢查代碼塊是否指定語言"""
-    pattern = r'```\s*$'
+    # 修改正則表達式，只匹配代碼塊的開始標記，例如 ```，但不匹配 ```txt 或 ```bash
+    pattern = r'^```\s*$'
     line_num = 1
     errors = []
+    in_code_block = False
     
     for line in text.splitlines():
-        if re.match(pattern, line):
+        # 如果是代碼塊的開始並且沒有指定語言
+        if not in_code_block and re.match(pattern, line):
             errors.append(f"行 {line_num}: 代碼塊未指定語言")
+            in_code_block = True
+        # 如果是代碼塊的開始並且有指定語言
+        elif not in_code_block and line.startswith('```'):
+            in_code_block = True
+        # 如果是代碼塊的結束
+        elif in_code_block and line.strip() == '```':
+            in_code_block = False
+        
         line_num += 1
     
     return errors

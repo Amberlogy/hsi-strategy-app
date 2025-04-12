@@ -1,4 +1,4 @@
-# HSI Strategy App
+content = """# HSI Strategy App
 
 一個用於分析恆生指數的策略平台。
 
@@ -80,3 +80,9 @@ hsi-strategy-app/
 ### 貢獻指南
 
 歡迎提交 Pull Request 或建立 Issue 來改進此專案。請確保新程式碼有對應的測試。
+"""
+
+with open('README_new.md', 'w', encoding='utf-8') as f:
+    f.write(content)
+
+print("已創建新的 README_new.md 文件") 

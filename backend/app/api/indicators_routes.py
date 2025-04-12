@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 from app.core import get_cache, set_cache
 # 導入技術指標計算模組
 from app.services.indicators import bollinger_bands
+# 導入資料獲取模組
+from app.data.source_aastocks import get_hsi_history
+# 導入定時更新任務模組
+from app.tasks.daily_update import get_latest_hsi_data
 
 # 創建指標路由器
 router = APIRouter()
@@ -96,7 +100,7 @@ async def get_bollinger_bands(
         if start_date > end_date:
             raise HTTPException(status_code=400, detail="開始日期不能晚於結束日期")
             
-        # 創建快取鍵，使用請求參數組合
+        # 創建快取鍵，使用 symbol + 日期
         cache_key = f"bollinger:{symbol}:{start_date.isoformat()}:{end_date.isoformat()}:{period}:{std_dev}"
         
         # 嘗試從快取獲取數據
@@ -109,32 +113,15 @@ async def get_bollinger_bands(
         # 若沒有快取，記錄日誌並繼續計算
         logger.info(f"計算布林帶數據並設置快取: {cache_key}")
         
-        # 計算日期範圍內的天數
-        date_range = (end_date - start_date).days + 1
+        # 使用 get_hsi_history 獲取實際數據
+        df = get_hsi_history(
+            symbol=symbol,
+            start_date=start_date.isoformat(),
+            end_date=end_date.isoformat()
+        )
         
-        # 產生日期序列
-        dates = [(start_date + timedelta(days=i)).isoformat() for i in range(min(date_range, 20))]
-        
-        # 產生虛擬數據
-        # 恒指典型範圍：約 25000-30000
-        base_value = 26500
-        volatility = 500
-        
-        # 產生隨機波動的股價數據
-        import random
-        random.seed(42)  # 保證每次生成相同的隨機數
-        
-        # 創建模擬價格數據的 DataFrame
-        price_data = []
-        current_price = base_value
-        for _ in range(len(dates)):
-            change = random.uniform(-1, 1) * volatility * 0.05
-            current_price += change
-            price_data.append(current_price)
-        
-        df = pd.DataFrame({
-            'close': price_data
-        }, index=pd.DatetimeIndex(dates))
+        # 確保日期列是 datetime 格式
+        df['date'] = pd.to_datetime(df['date'])
         
         # 使用布林帶函數計算指標
         bb_result = bollinger_bands(df, period=period, std_dev=std_dev, column='close')
@@ -146,7 +133,7 @@ async def get_bollinger_bands(
         valid_data = bb_result.dropna()
         
         for idx in valid_data.index:
-            date_str = idx.strftime('%Y-%m-%d')
+            date_str = valid_data.loc[idx, 'date'].strftime('%Y-%m-%d')
             result_data.append({
                 "date": date_str,
                 "sma": round(valid_data.loc[idx, 'bb_middle'], 2),
@@ -176,4 +163,65 @@ async def get_bollinger_bands(
         if isinstance(e, HTTPException):
             raise e
         logger.error(f"計算布林帶指標時出錯: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"計算布林帶指標時出錯: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"計算布林帶指標時出錯: {str(e)}")
+
+@router.get("/hsi-history", tags=["Data"])
+async def get_hsi_history_data(
+    days: int = Query(7, description="要獲取的天數，默認為 7 天"),
+) -> Dict:
+    """
+    獲取恆生指數的最近歷史數據
+    
+    從快取中獲取恆生指數的最近歷史數據，如果數據不存在，則自動更新
+    
+    Parameters
+    ----------
+    days : int, optional
+        要獲取的天數，默認為 7 天
+        
+    Returns
+    -------
+    Dict
+        包含恆生指數數據的字典
+    """
+    try:
+        # 從快取中獲取數據
+        history_data = get_latest_hsi_data(days)
+        
+        if not history_data:
+            raise HTTPException(status_code=404, detail="無法獲取恆生指數歷史數據")
+        
+        # 整理數據為時間序列格式
+        dates = []
+        prices = {
+            "open": [],
+            "high": [],
+            "low": [],
+            "close": [],
+            "volume": []
+        }
+        
+        # 按日期排序
+        sorted_dates = sorted(history_data.keys())
+        
+        for date_str in sorted_dates:
+            daily_data = history_data[date_str]
+            dates.append(date_str)
+            prices["open"].append(daily_data["open"])
+            prices["high"].append(daily_data["high"])
+            prices["low"].append(daily_data["low"])
+            prices["close"].append(daily_data["close"])
+            prices["volume"].append(daily_data["volume"])
+        
+        return {
+            "symbol": "HSI",
+            "data_source": "cache",
+            "dates": dates,
+            "prices": prices
+        }
+        
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        logger.error(f"獲取恆生指數歷史數據時出錯: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"獲取恆生指數歷史數據時出錯: {str(e)}") 

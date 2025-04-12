@@ -1,4 +1,7 @@
-# HSI Strategy App
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+readme_content = """# HSI Strategy App
 
 一個用於分析恆生指數的策略平台。
 
@@ -79,4 +82,9 @@ hsi-strategy-app/
 
 ### 貢獻指南
 
-歡迎提交 Pull Request 或建立 Issue 來改進此專案。請確保新程式碼有對應的測試。
+歡迎提交 Pull Request 或建立 Issue 來改進此專案。請確保新程式碼有對應的測試。"""
+
+with open('README.md', 'w', encoding='utf-8') as f:
+    f.write(readme_content)
+
+print("已成功重新生成 README.md 文件") 
