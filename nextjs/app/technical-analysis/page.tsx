@@ -116,7 +116,7 @@ const ChartCard: React.FC<ChartCardProps> = ({ title, children }) => (
 // Dynamically import the Chart component, disable SSR
 const DynamicChart = dynamic(() => import('react-chartjs-2').then(mod => mod.Chart), {
     ssr: false,
-    loading: () => <p>正在加載圖表...</p> // Optional loading state
+    loading: () => <p>Loading chart...</p> // Optional loading state
 });
 
 // --- Main Page Component ---

@@ -1,22 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
-import dynamic from 'next/dynamic'; // Import dynamic
+import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  BarElement, // For Volume
+  BarElement, // Add BarElement for volume bars
   Title,
   Tooltip,
   Legend,
   TimeScale, // Import TimeScale for time series data
+  Filler, // Import Filler for area charts (optional)
 } from 'chart.js';
-// import { Line, Chart } from 'react-chartjs-2'; // Remove static import of Chart
-import zoomPlugin from 'chartjs-plugin-zoom'; // Import zoom plugin
-import 'chartjs-adapter-date-fns'; // Adapter for time scale
+import 'chartjs-adapter-date-fns'; // Import the date adapter
+import zoomPlugin from 'chartjs-plugin-zoom'; // Import the zoom plugin
+
+// Dynamically import the Chart component to prevent SSR issues
+const DynamicChart = dynamic(() => import('react-chartjs-2').then((mod) => mod.Chart), {
+  ssr: false,
+  loading: () => <p>Loading chart...</p>
+});
 
 // Register necessary Chart.js components and plugins
 ChartJS.register(
@@ -29,7 +35,8 @@ ChartJS.register(
   Tooltip,
   Legend,
   TimeScale,
-  zoomPlugin
+  Filler,
+  zoomPlugin // Register the zoom plugin
 );
 
 // --- Data Interfaces ---
@@ -62,12 +69,6 @@ const mockCurrentData: HsiCurrentData = {
     change_percent: 0.35, // Example positive change
     volume: 195000000,
 };
-
-// Dynamically import the *generic* Chart component, disable SSR
-const DynamicChart = dynamic(() => import('react-chartjs-2').then(mod => mod.Chart), {
-  ssr: false,
-  loading: () => <p>正在加載圖表...</p> // Optional loading state
-});
 
 // --- Main Page Component ---
 export default function MarketOverviewPage() {
@@ -222,7 +223,11 @@ export default function MarketOverviewPage() {
       <div className="bg-white p-4 md:p-6 rounded-lg shadow-md">
         <div className="relative h-[500px]">
           {/* Use the dynamically imported component with type prop */}
-          <DynamicChart type='line' options={chartOptions} data={chartData} />
+          {chartData.labels && chartData.labels.length > 0 ? (
+            <DynamicChart type='line' data={chartData} options={chartOptions} />
+          ) : (
+            <p>Loading chart data...</p>
+          )}
         </div>
       </div>
 
