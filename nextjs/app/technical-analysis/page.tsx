@@ -112,24 +112,26 @@ export default function TechnicalAnalysisPage() {
   const [bollingerData] = useState<BollingerData>(mockBollingerData);
   const [macdData] = useState<MacdData>(mockMacdData);
   const [rsiData] = useState<RsiData>(mockRsiData);
-  // Removed isLoading and errors state
+  const [chartRegistered, setChartRegistered] = useState(false);
 
-  // --- ADD useEffect FOR ChartJS REGISTRATION ---
+  // --- Modified useEffect for registration (no dynamic imports needed here as adapter/plugin were not used) ---
   useEffect(() => {
-    ChartJS.register(
-      CategoryScale,
-      LinearScale,
-      PointElement,
-      LineElement,
-      BarElement,
-      Title,
-      Tooltip,
-      Legend,
-      Filler
-    );
-  }, []); // Empty dependency array ensures this runs only once on mount
-
-  // Removed useEffect hook for fetching data
+    if (!chartRegistered) {
+      // Register necessary components (no adapter/plugin needed for these specific charts)
+      ChartJS.register(
+        CategoryScale,
+        LinearScale,
+        PointElement,
+        LineElement,
+        BarElement,
+        Title,
+        Tooltip,
+        Legend,
+        Filler
+      );
+      setChartRegistered(true); // Mark as registered
+    }
+  }, [chartRegistered]); 
 
   // --- Prepare Chart Data (Uses state initialized with mock data) ---
   const bollingerChartData = {
@@ -232,15 +234,30 @@ export default function TechnicalAnalysisPage() {
 
         {/* Pass only needed props to ChartCard */}
         <ChartCard title="布林帶 Bollinger Bands">
-          <DynamicChart type='line' options={getChartOptions('布林帶 Bollinger Bands')} data={bollingerChartData} />
+          {/* Render chart conditionally */} 
+          {chartRegistered ? (
+             <DynamicChart type='line' options={getChartOptions('布林帶 Bollinger Bands')} data={bollingerChartData} />
+          ) : (
+             <p>Loading chart...</p>
+          )}
         </ChartCard>
 
         <ChartCard title="MACD">
-          <DynamicChart type='bar' options={macdChartOptions} data={macdChartData} />
+          {/* Render chart conditionally */} 
+          {chartRegistered ? (
+            <DynamicChart type='bar' options={macdChartOptions} data={macdChartData} />
+          ) : (
+             <p>Loading chart...</p>
+          )}
         </ChartCard>
 
         <ChartCard title="相對強弱指數 RSI">
-          <DynamicChart type='line' options={getChartOptions('相對強弱指數 RSI')} data={rsiChartData} />
+          {/* Render chart conditionally */} 
+          {chartRegistered ? (
+            <DynamicChart type='line' options={getChartOptions('相對強弱指數 RSI')} data={rsiChartData} />
+          ) : (
+             <p>Loading chart...</p>
+          )}
         </ChartCard>
 
         {/* Add more indicator cards here as needed */}

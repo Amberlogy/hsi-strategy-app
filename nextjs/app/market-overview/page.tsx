@@ -15,10 +15,11 @@ import {
   TimeScale, // Import TimeScale for time series data
   Filler, // Import Filler for area charts (optional)
 } from 'chart.js';
-import 'chartjs-adapter-date-fns'; // Import the date adapter
-import zoomPlugin from 'chartjs-plugin-zoom'; // Import the zoom plugin
+// --- REMOVE STATIC IMPORTS for adapter and plugin ---
+// import 'chartjs-adapter-date-fns'; 
+// import zoomPlugin from 'chartjs-plugin-zoom';
 
-// Dynamically import the Chart component to prevent SSR issues
+// Dynamically import the Chart component
 const DynamicChart = dynamic(() => import('react-chartjs-2').then((mod) => mod.Chart), {
   ssr: false,
   loading: () => <p>Loading chart...</p>
@@ -62,23 +63,37 @@ export default function MarketOverviewPage() {
 
   // Keep historical data mocked
   const hsiHistoricalData: HistoricalPoint[] = mockHistoricalData;
+  const [chartRegistered, setChartRegistered] = useState(false);
 
-  // --- ADD useEffect FOR ChartJS REGISTRATION ---
+  // --- Modified useEffect for dynamic imports and registration ---
   useEffect(() => {
-    ChartJS.register(
-      CategoryScale,
-      LinearScale,
-      PointElement,
-      LineElement,
-      BarElement,
-      Title,
-      Tooltip,
-      Legend,
-      TimeScale,
-      Filler,
-      zoomPlugin // Register the zoom plugin
-    );
-  }, []); // Empty dependency array ensures this runs only once on mount
+    const registerChart = async () => {
+      // Dynamically import adapter and plugin
+      await import('chartjs-adapter-date-fns');
+      const zoomPlugin = (await import('chartjs-plugin-zoom')).default; 
+
+      // Register components *after* dynamic imports
+      ChartJS.register(
+        CategoryScale,
+        LinearScale,
+        PointElement,
+        LineElement,
+        BarElement,
+        Title,
+        Tooltip,
+        Legend,
+        TimeScale,
+        Filler,
+        zoomPlugin // Use dynamically imported plugin
+      );
+      setChartRegistered(true); // Mark as registered
+    };
+
+    if (!chartRegistered) {
+        registerChart();
+    }
+
+  }, [chartRegistered]); // Rerun if registration status changes (should only run once effectively)
 
   const priceChangeColor = hsiCurrentData.change_percent > 0 ? 'text-green-600' : hsiCurrentData.change_percent < 0 ? 'text-red-600' : 'text-gray-500';
 
@@ -131,14 +146,14 @@ export default function MarketOverviewPage() {
         bodyFont: { size: 12 },
         padding: 10,
       },
-      zoom: {
+      zoom: { // Configure zoom plugin options here
         pan: {
-          enabled: true,
+          enabled: chartRegistered, // Enable only after registration
           mode: 'x' as const,
         },
         zoom: {
-          wheel: { enabled: true },
-          pinch: { enabled: true },
+          wheel: { enabled: chartRegistered }, // Enable only after registration
+          pinch: { enabled: chartRegistered }, // Enable only after registration
           mode: 'x' as const,
         },
       }
@@ -224,11 +239,11 @@ export default function MarketOverviewPage() {
       {/* Chart Area */} 
       <div className="bg-white p-4 md:p-6 rounded-lg shadow-md">
         <div className="relative h-[500px]">
-          {/* Use the dynamically imported component with type prop */}
-          {chartData.labels && chartData.labels.length > 0 ? (
+          {/* Conditionally render chart only when registered */}
+          {chartRegistered && chartData.labels && chartData.labels.length > 0 ? (
             <DynamicChart type='line' data={chartData} options={chartOptions} />
           ) : (
-            <p>Loading chart data...</p>
+            <p>Loading chart...</p> // Show loading text before registration completes
           )}
         </div>
       </div>
