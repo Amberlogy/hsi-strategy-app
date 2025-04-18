@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+redis
+apscheduler
+pandas
+python-dotenv
+matplotlib>=3.5.0
