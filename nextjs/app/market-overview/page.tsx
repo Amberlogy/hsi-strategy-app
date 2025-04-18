@@ -1,16 +1,44 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
 
-interface HsiData {
+// 註冊 Chart.js 所需的組件
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+interface HsiCurrentData {
   current_price: number;
   change_percent: number;
   volume: number;
   // 可以根據後端 API 的實際返回值添加更多字段
 }
 
+interface HsiHistoricalData {
+  labels: string[]; // 日期或其他時間標籤
+  prices: number[]; // 對應的價格
+}
+
 export default function MarketOverviewPage() {
-  const [hsiData, setHsiData] = useState<HsiData | null>(null);
+  const [hsiCurrentData, setHsiCurrentData] = useState<HsiCurrentData | null>(null);
+  const [hsiHistoricalData, setHsiHistoricalData] = useState<HsiHistoricalData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,16 +47,27 @@ export default function MarketOverviewPage() {
       setIsLoading(true);
       setError(null);
       try {
-        // 注意：這裡假設後端 API 在 http://localhost:8000
-        // 在實際部署中，您可能需要配置一個基礎 URL 或使用相對路徑（如果前端和後端部署在同一來源）
-        const response = await fetch('http://localhost:8000/api/indicators/hsi');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        // 同時獲取即時數據和歷史數據
+        const [currentResponse, historyResponse] = await Promise.all([
+          fetch('http://localhost:8000/api/indicators/hsi'), // 即時數據 API
+          fetch('http://localhost:8000/api/indicators/hsi/history') // 假設的歷史數據 API
+        ]);
+
+        if (!currentResponse.ok) {
+          throw new Error(`無法獲取即時數據: ${currentResponse.status}`);
         }
-        const data: HsiData = await response.json();
-        setHsiData(data);
+        if (!historyResponse.ok) {
+          throw new Error(`無法獲取歷史數據: ${historyResponse.status}`);
+        }
+
+        const currentData: HsiCurrentData = await currentResponse.json();
+        const historicalData: HsiHistoricalData = await historyResponse.json();
+
+        setHsiCurrentData(currentData);
+        setHsiHistoricalData(historicalData);
+
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch HSI data');
+        setError(err.message || '獲取恆指數據時出錯');
         console.error("Error fetching HSI data:", err);
       } finally {
         setIsLoading(false);
@@ -36,14 +75,61 @@ export default function MarketOverviewPage() {
     };
 
     fetchData();
-    // 可以在這裡設置定時器定期刷新數據
-    // const intervalId = setInterval(fetchData, 60000); // 例如每分鐘刷新一次
-    // return () => clearInterval(intervalId); // 清除定時器
+    // 定期刷新邏輯可以根據需要添加
   }, []);
 
-  const priceChangeColor = hsiData?.change_percent
-    ? hsiData.change_percent > 0 ? 'text-green-600' : hsiData.change_percent < 0 ? 'text-red-600' : 'text-gray-500'
+  const priceChangeColor = hsiCurrentData?.change_percent
+    ? hsiCurrentData.change_percent > 0 ? 'text-green-600' : hsiCurrentData.change_percent < 0 ? 'text-red-600' : 'text-gray-500'
     : 'text-gray-500';
+
+  // 準備 Chart.js 的數據格式
+  const chartData = {
+    labels: hsiHistoricalData?.labels || [],
+    datasets: [
+      {
+        label: '恆生指數',
+        data: hsiHistoricalData?.prices || [],
+        borderColor: 'rgb(59, 130, 246)', // Tailwind blue-500
+        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        tension: 0.1 // 使線條稍微平滑
+      },
+    ],
+  };
+
+  // Chart.js 的選項配置
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false, // 允許圖表調整高度
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      title: {
+        display: true,
+        text: '恆生指數歷史走勢',
+      },
+      tooltip: {
+        mode: 'index' as const,
+        intersect: false,
+      }
+    },
+    scales: {
+      x: {
+        display: true,
+        title: {
+          display: false,
+          text: '日期',
+        },
+      },
+      y: {
+        display: true,
+        title: {
+          display: false,
+          text: '指數',
+        },
+      },
+    },
+  };
 
   return (
     <div className="container mx-auto p-4">
@@ -59,34 +145,40 @@ export default function MarketOverviewPage() {
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <strong className="font-bold">錯誤!</strong>
-          <span className="block sm:inline"> 無法獲取恆指數據: {error}</span>
+          <span className="block sm:inline"> {error}</span>
         </div>
       )}
 
-      {!isLoading && !error && hsiData && (
+      {!isLoading && !error && hsiCurrentData && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* 左側數據顯示 */}
           <div className="md:col-span-1 bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold mb-4 text-gray-700">恆生指數 (HSI)</h2>
             <div className="mb-4">
-              <span className="text-4xl font-bold">{hsiData.current_price.toLocaleString()}</span>
+              <span className="text-4xl font-bold">{hsiCurrentData.current_price.toLocaleString()}</span>
             </div>
             <div className={`text-2xl font-semibold mb-4 ${priceChangeColor}`}>
-              {hsiData.change_percent > 0 ? '+' : ''}{hsiData.change_percent.toFixed(2)}%
+              {hsiCurrentData.change_percent > 0 ? '+' : ''}{hsiCurrentData.change_percent.toFixed(2)}%
             </div>
             <div>
               <span className="text-gray-500">成交量:</span>
-              <span className="ml-2 font-medium text-gray-800">{(hsiData.volume / 1_000_000_000).toFixed(2)} B</span>
+              <span className="ml-2 font-medium text-gray-800">{(hsiCurrentData.volume / 1_000_000_000).toFixed(2)} B</span>
             </div>
-            {/* 可在此處添加更多即時數據，如高低點等 */}
+            {/* 可在此處添加更多即時數據 */}
           </div>
 
           {/* 右側圖表區域 */}
           <div className="md:col-span-2 bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold mb-4 text-gray-700">指數走勢</h2>
-            <div className="bg-gray-100 h-96 flex items-center justify-center rounded">
-              <p className="text-gray-500">走勢圖表將在此處顯示</p>
-              {/* 圖表組件將替換此處 */}
+            {/* 修改圖表區域的高度 */}
+            <div className="relative h-96"> 
+              {hsiHistoricalData ? (
+                <Line options={chartOptions} data={chartData} />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-gray-500">無法加載歷史數據以生成圖表。</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
