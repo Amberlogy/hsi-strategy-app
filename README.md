@@ -79,4 +79,4 @@ hsi-strategy-app/
 
 ### 貢獻指南
 
-歡迎提交 Pull Request 或建立 Issue 來改進此專案。請確保新程式碼有對應的測試。
+歡迎提交 Pull Request 或建立 Issue 來改進此專案。請確保新程式碼有對應的測試。 
