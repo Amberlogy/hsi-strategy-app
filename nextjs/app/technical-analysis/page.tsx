@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic'; // Import dynamic
 import {
   Chart as ChartJS,
@@ -15,19 +15,6 @@ import {
   Filler, // For Bollinger Bands fill
 } from 'chart.js';
 // import { Line, Bar, Chart } from 'react-chartjs-2'; // Remove static imports
-
-// Register necessary Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 // --- Mock Data Definitions ---
 const mockLabels = ['2024-03-01', '2024-03-02', '2024-03-03', '2024-03-04', '2024-03-05', '2024-03-06', '2024-03-07'];
@@ -126,6 +113,21 @@ export default function TechnicalAnalysisPage() {
   const [macdData] = useState<MacdData>(mockMacdData);
   const [rsiData] = useState<RsiData>(mockRsiData);
   // Removed isLoading and errors state
+
+  // --- ADD useEffect FOR ChartJS REGISTRATION ---
+  useEffect(() => {
+    ChartJS.register(
+      CategoryScale,
+      LinearScale,
+      PointElement,
+      LineElement,
+      BarElement,
+      Title,
+      Tooltip,
+      Legend,
+      Filler
+    );
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   // Removed useEffect hook for fetching data
 

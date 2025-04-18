@@ -24,21 +24,6 @@ const DynamicChart = dynamic(() => import('react-chartjs-2').then((mod) => mod.C
   loading: () => <p>Loading chart...</p>
 });
 
-// Register necessary Chart.js components and plugins
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  TimeScale,
-  Filler,
-  zoomPlugin // Register the zoom plugin
-);
-
 // --- Data Interfaces ---
 interface HsiCurrentData {
   current_price: number;
@@ -77,6 +62,23 @@ export default function MarketOverviewPage() {
 
   // Keep historical data mocked
   const hsiHistoricalData: HistoricalPoint[] = mockHistoricalData;
+
+  // --- ADD useEffect FOR ChartJS REGISTRATION ---
+  useEffect(() => {
+    ChartJS.register(
+      CategoryScale,
+      LinearScale,
+      PointElement,
+      LineElement,
+      BarElement,
+      Title,
+      Tooltip,
+      Legend,
+      TimeScale,
+      Filler,
+      zoomPlugin // Register the zoom plugin
+    );
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const priceChangeColor = hsiCurrentData.change_percent > 0 ? 'text-green-600' : hsiCurrentData.change_percent < 0 ? 'text-red-600' : 'text-gray-500';
 
