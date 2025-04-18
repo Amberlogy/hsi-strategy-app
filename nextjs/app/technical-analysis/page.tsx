@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -28,7 +28,29 @@ ChartJS.register(
   Filler
 );
 
-// --- Data Interfaces (Assumed API responses) ---
+// --- Mock Data Definitions ---
+const mockLabels = ['2024-03-01', '2024-03-02', '2024-03-03', '2024-03-04', '2024-03-05', '2024-03-06', '2024-03-07'];
+
+const mockBollingerData = {
+  labels: mockLabels,
+  upper: [17200, 17300, 17450, 17500, 17600, 17550, 17650],
+  middle: [17000, 17100, 17200, 17250, 17300, 17350, 17400],
+  lower: [16800, 16900, 16950, 17000, 17000, 17150, 17150],
+};
+
+const mockMacdData = {
+  labels: mockLabels,
+  macd: [50, 60, 75, 80, 70, 65, 70],
+  signal: [40, 45, 55, 65, 68, 66, 67],
+  histogram: [10, 15, 20, 15, 2, -1, 3],
+};
+
+const mockRsiData = {
+  labels: mockLabels,
+  rsi: [60, 65, 72, 75, 68, 65, 67],
+};
+
+// --- Data Interfaces (Keep for type safety) ---
 interface BollingerData {
   labels: string[];
   upper: number[];
@@ -48,7 +70,7 @@ interface RsiData {
   rsi: number[];
 }
 
-// --- Helper function for chart options ---
+// --- Helper function for chart options (Unchanged) ---
 const getChartOptions = (titleText: string) => ({
   responsive: true,
   maintainAspectRatio: false,
@@ -75,88 +97,38 @@ const getChartOptions = (titleText: string) => ({
   },
 });
 
-// --- Chart Card Component ---
+// --- Chart Card Component (Simplified: remove loading/error props) ---
 interface ChartCardProps {
   title: string;
   children: React.ReactNode;
-  isLoading: boolean;
-  error: string | null;
 }
 
-const ChartCard: React.FC<ChartCardProps> = ({ title, children, isLoading, error }) => (
+const ChartCard: React.FC<ChartCardProps> = ({ title, children }) => (
   <div className="bg-white p-6 rounded-lg shadow-md min-h-[400px] flex flex-col">
     <h2 className="text-xl font-semibold mb-4 text-gray-700">{title}</h2>
     <div className="flex-grow relative">
-      {isLoading && <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75"><p className="text-gray-500">正在加載...</p></div>}
-      {error && <div className="absolute inset-0 flex items-center justify-center bg-red-50"><p className="text-red-600">錯誤: {error}</p></div>}
-      {!isLoading && !error && children}
+      {children} {/* Directly render children */}
     </div>
   </div>
 );
 
 // --- Main Page Component ---
 export default function TechnicalAnalysisPage() {
-  const [bollingerData, setBollingerData] = useState<BollingerData | null>(null);
-  const [macdData, setMacdData] = useState<MacdData | null>(null);
-  const [rsiData, setRsiData] = useState<RsiData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errors, setErrors] = useState<Record<string, string | null>>({});
+  // Initialize state directly with mock data
+  const [bollingerData] = useState<BollingerData>(mockBollingerData);
+  const [macdData] = useState<MacdData>(mockMacdData);
+  const [rsiData] = useState<RsiData>(mockRsiData);
+  // Removed isLoading and errors state
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setErrors({});
-      const currentErrors: Record<string, string | null> = {};
+  // Removed useEffect hook for fetching data
 
-      try {
-        const results = await Promise.allSettled([
-          fetch('http://localhost:8000/api/indicators/bollinger'),
-          fetch('http://localhost:8000/api/indicators/macd'),
-          fetch('http://localhost:8000/api/indicators/rsi'),
-        ]);
-
-        // Process Bollinger Bands
-        if (results[0].status === 'fulfilled' && results[0].value.ok) {
-          setBollingerData(await results[0].value.json());
-        } else {
-          currentErrors.bollinger = results[0].status === 'rejected' ? results[0].reason.message : `HTTP Error: ${results[0].value.status}`;
-        }
-
-        // Process MACD
-        if (results[1].status === 'fulfilled' && results[1].value.ok) {
-          setMacdData(await results[1].value.json());
-        } else {
-          currentErrors.macd = results[1].status === 'rejected' ? results[1].reason.message : `HTTP Error: ${results[1].value.status}`;
-        }
-
-        // Process RSI
-        if (results[2].status === 'fulfilled' && results[2].value.ok) {
-          setRsiData(await results[2].value.json());
-        } else {
-          currentErrors.rsi = results[2].status === 'rejected' ? results[2].reason.message : `HTTP Error: ${results[2].value.status}`;
-        }
-
-        setErrors(currentErrors);
-
-      } catch (err: any) {
-        // Catch potential general errors (unlikely with Promise.allSettled)
-        console.error("Error fetching technical indicators:", err);
-        setErrors({ general: err.message || 'An unexpected error occurred' });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  // --- Prepare Chart Data ---
+  // --- Prepare Chart Data (Uses state initialized with mock data) ---
   const bollingerChartData = {
-    labels: bollingerData?.labels || [],
+    labels: bollingerData.labels,
     datasets: [
       {
         label: 'Upper Band',
-        data: bollingerData?.upper || [],
+        data: bollingerData.upper,
         borderColor: 'rgba(156, 163, 175, 0.5)', // gray-400
         tension: 0.1,
         pointRadius: 0,
@@ -165,14 +137,14 @@ export default function TechnicalAnalysisPage() {
       },
       {
         label: 'Middle Band (SMA)',
-        data: bollingerData?.middle || [],
+        data: bollingerData.middle,
         borderColor: 'rgb(59, 130, 246)', // blue-500
         tension: 0.1,
         pointRadius: 0,
       },
       {
         label: 'Lower Band',
-        data: bollingerData?.lower || [],
+        data: bollingerData.lower,
         borderColor: 'rgba(156, 163, 175, 0.5)', // gray-400
         tension: 0.1,
         pointRadius: 0,
@@ -183,12 +155,12 @@ export default function TechnicalAnalysisPage() {
   };
 
   const macdChartData = {
-    labels: macdData?.labels || [],
+    labels: macdData.labels,
     datasets: [
       {
         type: 'line' as const,
         label: 'MACD',
-        data: macdData?.macd || [],
+        data: macdData.macd,
         borderColor: 'rgb(34, 197, 94)', // green-500
         tension: 0.1,
         pointRadius: 0,
@@ -197,7 +169,7 @@ export default function TechnicalAnalysisPage() {
       {
         type: 'line' as const,
         label: 'Signal Line',
-        data: macdData?.signal || [],
+        data: macdData.signal,
         borderColor: 'rgb(239, 68, 68)', // red-500
         tension: 0.1,
         pointRadius: 0,
@@ -206,9 +178,9 @@ export default function TechnicalAnalysisPage() {
       {
         type: 'bar' as const,
         label: 'Histogram',
-        data: macdData?.histogram || [],
-        backgroundColor: macdData?.histogram.map(v => v >= 0 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)'), // Green/Red bars
-        borderColor: macdData?.histogram.map(v => v >= 0 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)'),
+        data: macdData.histogram,
+        backgroundColor: macdData.histogram.map(v => v >= 0 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)'), // Green/Red bars
+        borderColor: macdData.histogram.map(v => v >= 0 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)'),
         borderWidth: 1,
         yAxisID: 'y1', // Use a secondary axis if desired for histogram scale
       },
@@ -228,11 +200,11 @@ export default function TechnicalAnalysisPage() {
   };
 
   const rsiChartData = {
-    labels: rsiData?.labels || [],
+    labels: rsiData.labels,
     datasets: [
       {
         label: 'RSI',
-        data: rsiData?.rsi || [],
+        data: rsiData.rsi,
         borderColor: 'rgb(168, 85, 247)', // purple-500
         backgroundColor: 'rgba(168, 85, 247, 0.5)',
         tension: 0.1,
@@ -245,26 +217,21 @@ export default function TechnicalAnalysisPage() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6 border-b pb-2">技術分析 Technical Analysis</h1>
+      <h1 className="text-3xl font-bold mb-6 border-b pb-2">技術分析 Technical Analysis (模擬數據)</h1> {/* Updated title */}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        <ChartCard title="布林帶 Bollinger Bands" isLoading={isLoading} error={errors.bollinger}>
-          {bollingerData ? (
-            <Line options={getChartOptions('布林帶 Bollinger Bands')} data={bollingerChartData} />
-          ) : <p className="text-gray-500 flex items-center justify-center h-full">無法加載布林帶數據。</p>}
+        {/* Pass only needed props to ChartCard */}
+        <ChartCard title="布林帶 Bollinger Bands">
+          <Line options={getChartOptions('布林帶 Bollinger Bands')} data={bollingerChartData} />
         </ChartCard>
 
-        <ChartCard title="MACD" isLoading={isLoading} error={errors.macd}>
-          {macdData ? (
-            <Chart type='bar' options={macdChartOptions} data={macdChartData} />
-          ) : <p className="text-gray-500 flex items-center justify-center h-full">無法加載 MACD 數據。</p>}
+        <ChartCard title="MACD">
+          <Chart type='bar' options={macdChartOptions} data={macdChartData} />
         </ChartCard>
 
-        <ChartCard title="相對強弱指數 RSI" isLoading={isLoading} error={errors.rsi}>
-          {rsiData ? (
-            <Line options={getChartOptions('相對強弱指數 RSI')} data={rsiChartData} />
-          ) : <p className="text-gray-500 flex items-center justify-center h-full">無法加載 RSI 數據。</p>}
+        <ChartCard title="相對強弱指數 RSI">
+          <Line options={getChartOptions('相對強弱指數 RSI')} data={rsiChartData} />
         </ChartCard>
 
         {/* Add more indicator cards here as needed */}
