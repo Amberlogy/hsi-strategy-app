@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic'; // Import dynamic
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,7 +14,7 @@ import {
   Legend,
   Filler, // For Bollinger Bands fill
 } from 'chart.js';
-import { Line, Bar, Chart } from 'react-chartjs-2';
+// import { Line, Bar, Chart } from 'react-chartjs-2'; // Remove static imports
 
 // Register necessary Chart.js components
 ChartJS.register(
@@ -111,6 +112,12 @@ const ChartCard: React.FC<ChartCardProps> = ({ title, children }) => (
     </div>
   </div>
 );
+
+// Dynamically import the Chart component, disable SSR
+const DynamicChart = dynamic(() => import('react-chartjs-2').then(mod => mod.Chart), {
+    ssr: false,
+    loading: () => <p>正在加載圖表...</p> // Optional loading state
+});
 
 // --- Main Page Component ---
 export default function TechnicalAnalysisPage() {
@@ -223,15 +230,15 @@ export default function TechnicalAnalysisPage() {
 
         {/* Pass only needed props to ChartCard */}
         <ChartCard title="布林帶 Bollinger Bands">
-          <Line options={getChartOptions('布林帶 Bollinger Bands')} data={bollingerChartData} />
+          <DynamicChart type='line' options={getChartOptions('布林帶 Bollinger Bands')} data={bollingerChartData} />
         </ChartCard>
 
         <ChartCard title="MACD">
-          <Chart type='bar' options={macdChartOptions} data={macdChartData} />
+          <DynamicChart type='bar' options={macdChartOptions} data={macdChartData} />
         </ChartCard>
 
         <ChartCard title="相對強弱指數 RSI">
-          <Line options={getChartOptions('相對強弱指數 RSI')} data={rsiChartData} />
+          <DynamicChart type='line' options={getChartOptions('相對強弱指數 RSI')} data={rsiChartData} />
         </ChartCard>
 
         {/* Add more indicator cards here as needed */}

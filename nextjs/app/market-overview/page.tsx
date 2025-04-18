@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic'; // Import dynamic
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,7 +14,7 @@ import {
   Legend,
   TimeScale, // Import TimeScale for time series data
 } from 'chart.js';
-import { Line, Chart } from 'react-chartjs-2';
+// import { Line, Chart } from 'react-chartjs-2'; // Remove static import of Chart
 import zoomPlugin from 'chartjs-plugin-zoom'; // Import zoom plugin
 import 'chartjs-adapter-date-fns'; // Adapter for time scale
 
@@ -61,6 +62,12 @@ const mockCurrentData: HsiCurrentData = {
     change_percent: 0.35, // Example positive change
     volume: 195000000,
 };
+
+// Dynamically import the *generic* Chart component, disable SSR
+const DynamicChart = dynamic(() => import('react-chartjs-2').then(mod => mod.Chart), {
+  ssr: false,
+  loading: () => <p>正在加載圖表...</p> // Optional loading state
+});
 
 // --- Main Page Component ---
 export default function MarketOverviewPage() {
@@ -214,7 +221,8 @@ export default function MarketOverviewPage() {
       {/* Chart Area */} 
       <div className="bg-white p-4 md:p-6 rounded-lg shadow-md">
         <div className="relative h-[500px]">
-          <Chart type='line' options={chartOptions} data={chartData} />
+          {/* Use the dynamically imported component with type prop */}
+          <DynamicChart type='line' options={chartOptions} data={chartData} />
         </div>
       </div>
 
