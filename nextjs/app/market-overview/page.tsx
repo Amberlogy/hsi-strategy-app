@@ -7,65 +7,75 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  BarElement, // For Volume
   Title,
   Tooltip,
   Legend,
+  TimeScale, // Import TimeScale for time series data
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Line, Chart } from 'react-chartjs-2';
+import zoomPlugin from 'chartjs-plugin-zoom'; // Import zoom plugin
+import 'chartjs-adapter-date-fns'; // Adapter for time scale
 
-// 註冊 Chart.js 所需的組件
+// Register necessary Chart.js components and plugins
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  TimeScale, // Register TimeScale
+  zoomPlugin // Register zoom plugin
 );
 
+// --- Data Interfaces (Adjusted for time, close, volume) ---
 interface HsiCurrentData {
   current_price: number;
   change_percent: number;
   volume: number;
-  // 可以根據後端 API 的實際返回值添加更多字段
 }
 
-interface HsiHistoricalData {
-  labels: string[]; // 日期或其他時間標籤
-  prices: number[]; // 對應的價格
+interface HistoricalPoint {
+  time: string; // Expecting 'YYYY-MM-DD' or a format date-fns can parse
+  close: number;
+  volume: number;
 }
 
+// --- Mock Data (Updated structure) ---
+const mockHistoricalData: HistoricalPoint[] = [
+  { time: '2024-03-01', close: 17000, volume: 150000000 },
+  { time: '2024-03-02', close: 17100, volume: 160000000 },
+  { time: '2024-03-03', close: 17200, volume: 175000000 },
+  { time: '2024-03-04', close: 17250, volume: 170000000 },
+  { time: '2024-03-05', close: 17300, volume: 180000000 },
+  { time: '2024-03-06', close: 17350, volume: 165000000 },
+  { time: '2024-03-07', close: 17400, volume: 190000000 },
+];
+
+// --- Main Page Component ---
 export default function MarketOverviewPage() {
+  // Assuming we only fetch current data now, historical is mocked
   const [hsiCurrentData, setHsiCurrentData] = useState<HsiCurrentData | null>(null);
-  const [hsiHistoricalData, setHsiHistoricalData] = useState<HsiHistoricalData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Keep historical data mocked for now
+  const hsiHistoricalData: HistoricalPoint[] = mockHistoricalData;
+
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCurrentData = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        // 同時獲取即時數據和歷史數據
-        const [currentResponse, historyResponse] = await Promise.all([
-          fetch('http://localhost:8000/api/indicators/hsi'), // 即時數據 API
-          fetch('http://localhost:8000/api/indicators/hsi/history') // 假設的歷史數據 API
-        ]);
-
-        if (!currentResponse.ok) {
-          throw new Error(`無法獲取即時數據: ${currentResponse.status}`);
+        const response = await fetch('http://localhost:8000/api/indicators/hsi');
+        if (!response.ok) {
+          throw new Error(`無法獲取即時數據: ${response.status}`);
         }
-        if (!historyResponse.ok) {
-          throw new Error(`無法獲取歷史數據: ${historyResponse.status}`);
-        }
-
-        const currentData: HsiCurrentData = await currentResponse.json();
-        const historicalData: HsiHistoricalData = await historyResponse.json();
-
+        const currentData: HsiCurrentData = await response.json();
         setHsiCurrentData(currentData);
-        setHsiHistoricalData(historicalData);
-
       } catch (err: any) {
         setError(err.message || '獲取恆指數據時出錯');
         console.error("Error fetching HSI data:", err);
@@ -73,118 +83,176 @@ export default function MarketOverviewPage() {
         setIsLoading(false);
       }
     };
-
-    fetchData();
-    // 定期刷新邏輯可以根據需要添加
+    fetchCurrentData();
   }, []);
 
   const priceChangeColor = hsiCurrentData?.change_percent
     ? hsiCurrentData.change_percent > 0 ? 'text-green-600' : hsiCurrentData.change_percent < 0 ? 'text-red-600' : 'text-gray-500'
     : 'text-gray-500';
 
-  // 準備 Chart.js 的數據格式
+  // --- Prepare Chart.js Data --- 
   const chartData = {
-    labels: hsiHistoricalData?.labels || [],
+    labels: hsiHistoricalData.map(d => d.time),
     datasets: [
       {
-        label: '恆生指數',
-        data: hsiHistoricalData?.prices || [],
-        borderColor: 'rgb(59, 130, 246)', // Tailwind blue-500
+        type: 'line' as const, // Explicitly type as line
+        label: '恆生指數 (收盤價)',
+        data: hsiHistoricalData.map(d => d.close),
+        borderColor: 'rgb(59, 130, 246)', // blue-500
         backgroundColor: 'rgba(59, 130, 246, 0.5)',
-        tension: 0.1 // 使線條稍微平滑
+        tension: 0.1,
+        pointRadius: 1, // Smaller points
+        yAxisID: 'yPrice', // Link to price axis
+      },
+      {
+        type: 'bar' as const, // Explicitly type as bar
+        label: '成交量',
+        data: hsiHistoricalData.map(d => d.volume),
+        backgroundColor: 'rgba(156, 163, 175, 0.4)', // gray-400 with opacity
+        borderColor: 'rgba(156, 163, 175, 0.6)',
+        yAxisID: 'yVolume', // Link to volume axis
+        order: 1 // Ensure bars are behind the line
       },
     ],
   };
 
-  // Chart.js 的選項配置
+  // --- Chart.js Options --- 
   const chartOptions = {
     responsive: true,
-    maintainAspectRatio: false, // 允許圖表調整高度
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
     plugins: {
       legend: {
         position: 'top' as const,
       },
       title: {
         display: true,
-        text: '恆生指數歷史走勢',
+        text: '恆生指數走勢與成交量',
+        font: { size: 16 }
       },
       tooltip: {
-        mode: 'index' as const,
-        intersect: false,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        titleFont: { size: 14 },
+        bodyFont: { size: 12 },
+        padding: 10,
+        // Custom tooltip callbacks if needed
+      },
+      zoom: {
+        pan: {
+          enabled: true,
+          mode: 'x' as const, // Enable panning only on x-axis
+        },
+        zoom: {
+          wheel: { enabled: true }, // Enable zooming with mouse wheel
+          pinch: { enabled: true }, // Enable zooming with pinch gesture
+          mode: 'x' as const, // Enable zooming only on x-axis
+        },
       }
     },
     scales: {
       x: {
-        display: true,
-        title: {
-          display: false,
-          text: '日期',
+        type: 'time' as const,
+        time: {
+          unit: 'day' as const,
+          tooltipFormat: 'yyyy-MM-dd',
+          displayFormats: {
+             day: 'MM-dd' // Format for x-axis labels
+          }
         },
-      },
-      y: {
-        display: true,
-        title: {
-          display: false,
-          text: '指數',
+        grid: {
+          color: 'rgba(200, 200, 200, 0.1)', // Lighter grid lines
         },
+        ticks: {
+          source: 'auto' as const,
+          maxRotation: 0,
+          autoSkip: true,
+        }
       },
-    },
+      yPrice: { // Price Axis
+        type: 'linear' as const,
+        display: true,
+        position: 'left' as const,
+        grid: {
+          color: 'rgba(200, 200, 200, 0.1)',
+        },
+        title: {
+          display: true,
+          text: '指數'
+        }
+      },
+      yVolume: { // Volume Axis
+        type: 'linear' as const,
+        display: true, // Set to true to show volume axis
+        position: 'right' as const,
+        grid: { drawOnChartArea: false }, // Don't draw grid lines for volume axis
+        ticks: {
+          callback: function(value: number | string) {
+            if (typeof value === 'number') {
+              return value / 1_000_000 + 'M'; // Format as Millions
+            }
+            return value;
+          }
+        },
+        title: {
+          display: true,
+          text: '成交量'
+        }
+      }
+    }
   };
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6 border-b pb-2">市場總覽 Market Overview</h1>
 
+      {/* Loading and Error states for Current Data */}
       {isLoading && (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
-          <p className="ml-4 text-lg text-gray-600">正在加載恆指數據...</p>
+        <div className="flex justify-center items-center h-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          <p className="ml-3 text-gray-600">正在加載即時數據...</p>
         </div>
       )}
-
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
           <strong className="font-bold">錯誤!</strong>
           <span className="block sm:inline"> {error}</span>
         </div>
       )}
 
-      {!isLoading && !error && hsiCurrentData && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* 左側數據顯示 */}
-          <div className="md:col-span-1 bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">恆生指數 (HSI)</h2>
-            <div className="mb-4">
-              <span className="text-4xl font-bold">{hsiCurrentData.current_price.toLocaleString()}</span>
+      {/* Display Current Data if available */}
+      {hsiCurrentData && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 bg-white p-4 rounded-lg shadow-sm">
+            <div className="text-center md:text-left">
+              <h2 className="text-sm font-medium text-gray-500">恆生指數 (HSI)</h2>
+              <p className="text-2xl font-bold">{hsiCurrentData.current_price.toLocaleString()}</p>
             </div>
-            <div className={`text-2xl font-semibold mb-4 ${priceChangeColor}`}>
-              {hsiCurrentData.change_percent > 0 ? '+' : ''}{hsiCurrentData.change_percent.toFixed(2)}%
+             <div className="text-center md:text-left">
+               <h2 className="text-sm font-medium text-gray-500">漲跌幅</h2>
+               <p className={`text-2xl font-bold ${priceChangeColor}`}>
+                 {hsiCurrentData.change_percent > 0 ? '+' : ''}{hsiCurrentData.change_percent.toFixed(2)}%
+               </p>
             </div>
-            <div>
-              <span className="text-gray-500">成交量:</span>
-              <span className="ml-2 font-medium text-gray-800">{(hsiCurrentData.volume / 1_000_000_000).toFixed(2)} B</span>
-            </div>
-            {/* 可在此處添加更多即時數據 */}
+             <div className="text-center md:text-left">
+               <h2 className="text-sm font-medium text-gray-500">今日成交量</h2>
+               <p className="text-xl font-semibold">{(hsiCurrentData.volume / 1_000_000_000).toFixed(2)} B</p>
+             </div>
+             {/* Add placeholder for other potential current data */}
+             <div className="text-center md:text-left">
+               <h2 className="text-sm font-medium text-gray-500">--</h2>
+               <p className="text-xl font-semibold">--</p>
+             </div>
           </div>
-
-          {/* 右側圖表區域 */}
-          <div className="md:col-span-2 bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">指數走勢</h2>
-            {/* 修改圖表區域的高度 */}
-            <div className="relative h-96"> 
-              {hsiHistoricalData ? (
-                <Line options={chartOptions} data={chartData} />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-500">無法加載歷史數據以生成圖表。</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       )}
 
-      {/* 其他時間級別圖表或成交量圖表可以在下方繼續添加 */}
+      {/* Chart Area - Always render chart container, Line component handles data */}
+      <div className="bg-white p-4 md:p-6 rounded-lg shadow-md">
+        <div className="relative h-[500px]"> {/* Increased height for better view */}
+          <Chart type='line' options={chartOptions} data={chartData} />
+        </div>
+      </div>
 
     </div>
   );
