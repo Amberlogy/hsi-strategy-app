@@ -1,5 +1,3 @@
-'use client';
-
 export default function NotFound() {
   return (
     <div style={{
@@ -10,6 +8,7 @@ export default function NotFound() {
       minHeight: '100vh',
       padding: '20px',
       backgroundColor: '#f5f5f5',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     }}>
       <div style={{
         maxWidth: '500px',

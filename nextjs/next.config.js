@@ -46,17 +46,6 @@ const nextConfig = {
     reactRemoveProperties: process.env.NODE_ENV === 'production',
     removeConsole: process.env.NODE_ENV === 'production',
   },
-  webpack: (config, { isServer }) => {
-    // 在客戶端為Chart.js和相關套件增加fallback
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        canvas: false,
-      };
-    }
-
-    return config;
-  },
 };
 
 module.exports = nextConfig; 
