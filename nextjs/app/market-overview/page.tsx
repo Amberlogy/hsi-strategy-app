@@ -30,6 +30,13 @@ const DynamicChart = dynamic(() => import('react-chartjs-2').then((mod) => mod.C
   loading: () => <p>Loading chart...</p>
 });
 
+// 動態導入 chartjs-adapter-date-fns 和 zoom 插件
+const dynamicImports = async () => {
+  await import('chartjs-adapter-date-fns');
+  const zoomModule = await import('chartjs-plugin-zoom');
+  return { zoomPlugin: zoomModule.default };
+};
+
 // Define available chart types
 type ChartDisplayType = 'candlestick' | 'line' | 'area' | 'ohlc';
 
@@ -569,8 +576,7 @@ export default function MarketOverviewPage() {
   useEffect(() => {
     const registerChart = async () => {
       // Dynamically import adapter and plugin
-      await import('chartjs-adapter-date-fns');
-      const zoomPlugin = (await import('chartjs-plugin-zoom')).default;
+      const { zoomPlugin } = await dynamicImports();
 
       // Register components including Candlestick
       ChartJS.register(
