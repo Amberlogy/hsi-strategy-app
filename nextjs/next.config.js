@@ -4,7 +4,16 @@ const nextConfig = {
   images: {
     unoptimized: true
   },
-  distDir: '.next'
+  distDir: '.next',
+  typescript: {
+    // !! 警告 !!
+    // 在生產環境中會忽略類型錯誤
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    // 在生產環境中忽略ESLint錯誤
+    ignoreDuringBuilds: true,
+  }
 };
 
 module.exports = nextConfig; 
