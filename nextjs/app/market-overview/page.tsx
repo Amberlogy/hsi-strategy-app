@@ -560,7 +560,7 @@ export default function MarketOverviewPage() {
   const [chartRegistered, setChartRegistered] = useState(false);
   const [chartType, setChartType] = useState<ChartDisplayType>('candlestick');
   const [interval, setInterval] = useState<Interval>('1D');
-  const [duration, setDuration] = useState<Duration>('6M');
+  const [duration, setDuration] = useState<Duration>('All');
   // --- NEW State for main indicators ---
   const [mainIndicatorType, setMainIndicatorType] = useState<MainIndicatorType>('sma');
   const [activePeriods, setActivePeriods] = useState<number[]>([10, 20]);
@@ -878,12 +878,16 @@ export default function MarketOverviewPage() {
     interaction: { mode: 'index' as const, intersect: false },
     plugins: {
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        titleFont: { size: 14 },
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleFont: { size: 14, weight: 'bold' as const },
         bodyFont: { size: 12 },
         padding: 10,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        borderWidth: 1,
+        titleColor: '#FFFFFF',
+        bodyColor: '#DDDDDD',
       },
-      zoom: { 
+      zoom: {
         pan: {
           enabled: chartRegistered,
           mode: 'x' as const,
@@ -900,25 +904,37 @@ export default function MarketOverviewPage() {
         type: 'time' as const,
         time: {
           unit: timeUnit,
-          tooltipFormat: timeUnit === 'minute' || timeUnit === 'hour' ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd', 
+          tooltipFormat: timeUnit === 'minute' || timeUnit === 'hour' ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd',
           displayFormats: {
-             minute: 'HH:mm', 
-             hour: 'MM-dd HH:mm', 
-             day: 'MM-dd', 
-             week: 'yyyy-MM-dd', 
-             month: 'yyyy-MM' 
+             minute: 'HH:mm',
+             hour: 'MM-dd HH:mm',
+             day: 'MM-dd',
+             week: 'yyyy-MM-dd',
+             month: 'yyyy-MM'
           }
         },
         grid: {
-          color: 'rgba(200, 200, 200, 0.1)',
+          color: 'rgba(255, 255, 255, 0.1)',
         },
         ticks: {
           source: 'auto' as const,
           maxRotation: 0,
           autoSkip: true,
+          color: '#B0B0B0',
         }
       },
-    }
+      y: {
+          grid: {
+              color: 'rgba(255, 255, 255, 0.1)',
+          },
+          ticks: {
+              color: '#B0B0B0',
+          },
+           title: {
+               color: '#B0B0B0'
+           }
+      }
+    },
   }), [chartRegistered, timeUnit]);
 
   const mainChartOptions: ChartOptions = useMemo(() => ({
@@ -931,6 +947,7 @@ export default function MarketOverviewPage() {
         labels: {
             boxWidth: 12,
             font: { size: 10 },
+            color: '#B0B0B0',
             filter: (item: LegendItem) => {
                 if (item.text && (item.text.startsWith('HSI') || item.datasetIndex === 0)) return true;
                 const indicatorPrefixes = ['SMA(', 'WMA(', 'EMA(', 'BB ', 'SAR'];
@@ -939,15 +956,24 @@ export default function MarketOverviewPage() {
         }
       },
       title: {
-        display: true, 
-        text: `恆生指數 ${chartType.toUpperCase()} (模擬數據)`, 
-        font: { size: 16 } 
+        display: true,
+        text: `恆生指數 ${chartType.toUpperCase()} (模擬數據)`,
+        font: { size: 16, weight: 'bold' as const },
+        color: '#E0E0E0'
       },
     },
     scales: {
       ...commonOptions.scales,
-      x: { ...commonOptions.scales.x, ticks: { ...commonOptions.scales.x?.ticks, display: false } }, // Hide X ticks on main chart
-      yPrice: { type: 'linear' as const, display: true, position: 'left' as const, grid: { color: 'rgba(200, 200, 200, 0.2)' }, title: { display: true, text: '指數' } },
+      x: { ...commonOptions.scales.x, ticks: { ...commonOptions.scales.x?.ticks, display: false } },
+      yPrice: {
+          ...(commonOptions.scales?.y ?? {}),
+          type: 'linear' as const,
+          display: true,
+          position: 'left' as const,
+          grid: { color: 'rgba(255, 255, 255, 0.1)' },
+          ticks: { color: '#B0B0B0' },
+          title: { display: true, text: '指數', color: '#B0B0B0' }
+      },
     }
   }), [commonOptions, chartType, timeUnit, mainIndicatorType, activePeriods]);
 
@@ -955,29 +981,31 @@ export default function MarketOverviewPage() {
     ...commonOptions,
     plugins: {
       ...commonOptions.plugins,
-       legend: { display: false }, // No legend for volume chart
-      title: { display: false }, // No title for volume chart
+       legend: { display: false },
+      title: { display: false },
     },
     scales: {
-      ...commonOptions.scales, // Inherit X axis config
-      yVolume: { 
-        type: 'linear' as const, 
-        display: true, 
-        position: 'left' as const, // Volume usually on left if solo 
-        grid: { drawOnChartArea: false }, 
-        ticks: {
-          callback: function(value: number | string) {
-            if (typeof value === 'number') {
-              if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + 'B';
-              if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M';
-              if (value >= 1_000) return (value / 1_000).toFixed(1) + 'K';
+      x: { ...commonOptions.scales?.x },
+      yVolume: {
+          ...(commonOptions.scales?.y ?? {}),
+          type: 'linear' as const,
+          display: true,
+          position: 'left' as const,
+          grid: { drawOnChartArea: false, color: 'rgba(255, 255, 255, 0.1)' },
+          ticks: {
+            color: '#B0B0B0',
+            callback: function(value: number | string) {
+              if (typeof value === 'number') {
+                if (value >= 1_000_000_000) return (value / 1_000_000_000).toFixed(1) + 'B';
+                if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M';
+                if (value >= 1_000) return (value / 1_000).toFixed(1) + 'K';
+                return value;
+              }
               return value;
-            }
-            return value;
+            },
+             maxTicksLimit: 5
           },
-           maxTicksLimit: 5 // Limit ticks on volume axis
-        },
-        title: { display: true, text: '成交量' }
+          title: { display: true, text: '成交量', color: '#B0B0B0' }
       }
     }
   }), [commonOptions, timeUnit]);
@@ -986,7 +1014,7 @@ export default function MarketOverviewPage() {
   const getSubChartOptions = (indicatorType: SubIndicatorType): ChartOptions => {
       let yAxisID: string;
       let titleText: string;
-      let yAxisOptions: any = {}; // Use 'any' for flexibility or define a stricter type
+      let yAxisOptions: any = {};
       let legendFilter: ((item: LegendItem) => boolean) | undefined = undefined;
       let showLegend = false;
 
@@ -1006,7 +1034,7 @@ export default function MarketOverviewPage() {
               yAxisID = 'yStc';
               titleText = 'Slow STC(14,3,3)';
               yAxisOptions = { min: 0, max: 100 };
-              showLegend = true; // Show %K and %D legend
+              showLegend = true;
               break;
           case 'william_r':
                yAxisID = 'yWilliamR';
@@ -1016,12 +1044,11 @@ export default function MarketOverviewPage() {
            case 'roc':
                yAxisID = 'yRoc';
                titleText = 'ROC(12)';
-               // yAxisOptions can be left default or set based on data range if needed
                break;
             case 'volume':
                 yAxisID = 'yVolume';
                 titleText = '成交量';
-                yAxisOptions = { // Copy relevant volume axis options
+                yAxisOptions = {
                     ticks: {
                         callback: function(value: number | string) {
                            if (typeof value === 'number') {
@@ -1042,58 +1069,64 @@ export default function MarketOverviewPage() {
               break;
       }
 
-    // Use useMemo inside for performance, but dependencies are tricky here.
-    // For simplicity, constructing options directly. Consider memoization if performance issues arise.
-     return {
+    return {
         ...commonOptions,
         plugins: {
           ...commonOptions.plugins,
-          legend: { 
-              display: showLegend, // Control legend visibility 
-              position: 'top' as const, 
-              labels: { 
-                  boxWidth: 10, 
+          legend: {
+              display: showLegend,
+              position: 'top' as const,
+              labels: {
+                  boxWidth: 10,
                   font: { size: 10 },
-                  filter: legendFilter // Apply specific legend filter inside labels
+                  color: '#B0B0B0',
+                  filter: legendFilter
               },
-          }, 
-          title: { display: false }, // Sub-charts usually don't need a big title 
+          },
+          title: { display: false },
         },
         scales: {
-            x: { 
-                ...commonOptions.scales.x,
-                ticks: { 
+            x: {
+                ...commonOptions.scales?.x,
+                ticks: {
                     ...commonOptions.scales.x?.ticks,
-                     // Show X ticks only on the last sub-chart
-                    display: true // Needs logic to determine if it's the last chart
-                } 
+                    display: true,
+                    color: '#B0B0B0',
+                }
             },
-            [yAxisID]: { // Dynamic Y-axis based on indicator
-                type: 'linear' as const, 
-                display: true, 
-                position: 'left' as const, 
-                grid: { drawOnChartArea: false }, 
-                ticks: { maxTicksLimit: 5, ...yAxisOptions.ticks }, // Merge general and specific ticks
-                title: { display: true, text: titleText },
-                 ...yAxisOptions // Spread other Y-axis options like min/max
+            [yAxisID]: {
+                ...(commonOptions.scales?.y ?? {}),
+                type: 'linear' as const,
+                display: true,
+                position: 'left' as const,
+                grid: { drawOnChartArea: false, color: 'rgba(255, 255, 255, 0.1)' },
+                ticks: { maxTicksLimit: 5, color: '#B0B0B0', ...(yAxisOptions.ticks ?? {}) },
+                title: { display: true, text: titleText, color: '#B0B0B0' },
+                 ...yAxisOptions
             }
         }
       };
   };
 
   // Updated function to get button style, accepting a generic type T
-  const getButtonStyle = <T extends string>(currentValue: T, targetValue: T) => {
-    return `px-3 py-1 rounded mr-2 text-sm ${currentValue === targetValue 
-      ? 'bg-blue-600 text-white' 
-      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`;
+  const getButtonStyle = <T extends string>(currentValue: T, targetValue: T, isDarkMode = false) => {
+    if (isDarkMode) {
+        return `px-3 py-1 rounded mr-2 text-sm ${currentValue === targetValue
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`;
+    } else {
+        return `px-3 py-1 rounded mr-2 text-sm ${currentValue === targetValue
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`;
+    }
   };
 
   // --- NEW: Handler for toggling active periods ---
   const handlePeriodToggle = (period: number) => {
     setActivePeriods(prev =>
       prev.includes(period)
-        ? prev.filter(p => p !== period) // Remove if exists
-        : [...prev, period] // Add if doesn't exist
+        ? prev.filter(p => p !== period)
+        : [...prev, period]
     );
   };
 
@@ -1123,45 +1156,45 @@ export default function MarketOverviewPage() {
          </div>
       </div>
 
-      {/* Chart Area - Adjust heights */} 
-      <div className="bg-white p-4 md:p-6 rounded-lg shadow-md">
-         {/* Controls Container */}
-         <div className="flex flex-col md:flex-row flex-wrap gap-y-2 mb-4">
-           {/* Chart Type Switcher */}    
+      {/* Chart Area - Adjust heights */}
+      <div className="bg-gray-900 p-4 md:p-6 rounded-lg shadow-md">
+         {/* Controls Container - Style for dark theme */}
+         <div className="flex flex-col md:flex-row flex-wrap gap-y-2 mb-4 text-gray-300">
+           {/* Chart Type Switcher */}
            <div className="mr-6 mb-2 md:mb-0">
              <span className="text-sm font-medium mr-3">圖表類型:</span>
-             <button className={getButtonStyle(chartType, 'candlestick')} onClick={() => setChartType('candlestick')}>陰陽燭</button>
-             <button className={getButtonStyle(chartType, 'line')} onClick={() => setChartType('line')}>線形圖</button>
-             <button className={getButtonStyle(chartType, 'area')} onClick={() => setChartType('area')}>山形圖</button>
-             <button className={getButtonStyle(chartType, 'ohlc')} onClick={() => setChartType('ohlc')}>OHLC</button>
+             <button className={getButtonStyle(chartType, 'candlestick', true)} onClick={() => setChartType('candlestick')}>陰陽燭</button>
+             <button className={getButtonStyle(chartType, 'line', true)} onClick={() => setChartType('line')}>線形圖</button>
+             <button className={getButtonStyle(chartType, 'area', true)} onClick={() => setChartType('area')}>山形圖</button>
+             <button className={getButtonStyle(chartType, 'ohlc', true)} onClick={() => setChartType('ohlc')}>OHLC</button>
            </div>
 
-           {/* Interval Switcher */} 
+           {/* Interval Switcher */}
            <div className="mr-6 mb-2 md:mb-0">
               <span className="text-sm font-medium mr-3">間隔:</span>
-              <button className={getButtonStyle(interval, '5m')} onClick={() => setInterval('5m')}>5分</button>
-              <button className={getButtonStyle(interval, '15m')} onClick={() => setInterval('15m')}>15分</button>
-              <button className={getButtonStyle(interval, '1H')} onClick={() => setInterval('1H')}>1小時</button>
-              <button className={getButtonStyle(interval, '1D')} onClick={() => setInterval('1D')}>日線</button>
-              <button className={getButtonStyle(interval, '1W')} onClick={() => setInterval('1W')}>週線</button>
-              <button className={getButtonStyle(interval, '1M')} onClick={() => setInterval('1M')}>月線</button>
+              <button className={getButtonStyle(interval, '5m', true)} onClick={() => setInterval('5m')}>5分</button>
+              <button className={getButtonStyle(interval, '15m', true)} onClick={() => setInterval('15m')}>15分</button>
+              <button className={getButtonStyle(interval, '1H', true)} onClick={() => setInterval('1H')}>1小時</button>
+              <button className={getButtonStyle(interval, '1D', true)} onClick={() => setInterval('1D')}>日線</button>
+              <button className={getButtonStyle(interval, '1W', true)} onClick={() => setInterval('1W')}>週線</button>
+              <button className={getButtonStyle(interval, '1M', true)} onClick={() => setInterval('1M')}>月線</button>
             </div>
 
-           {/* Duration Switcher */} 
+           {/* Duration Switcher */}
            <div>
               <span className="text-sm font-medium mr-3">持續時間:</span>
-              <button className={getButtonStyle(duration, '1D')} onClick={() => setDuration('1D')}>1天</button>
-              <button className={getButtonStyle(duration, '5D')} onClick={() => setDuration('5D')}>5天</button>
-              <button className={getButtonStyle(duration, '1M')} onClick={() => setDuration('1M')}>1個月</button>
-              <button className={getButtonStyle(duration, '3M')} onClick={() => setDuration('3M')}>3個月</button>
-              <button className={getButtonStyle(duration, '6M')} onClick={() => setDuration('6M')}>6個月</button>
-              <button className={getButtonStyle(duration, '1Y')} onClick={() => setDuration('1Y')}>1年</button>
-              <button className={getButtonStyle(duration, 'All')} onClick={() => setDuration('All')}>全部</button>
+              <button className={getButtonStyle(duration, '1D', true)} onClick={() => setDuration('1D')}>1天</button>
+              <button className={getButtonStyle(duration, '5D', true)} onClick={() => setDuration('5D')}>5天</button>
+              <button className={getButtonStyle(duration, '1M', true)} onClick={() => setDuration('1M')}>1個月</button>
+              <button className={getButtonStyle(duration, '3M', true)} onClick={() => setDuration('3M')}>3個月</button>
+              <button className={getButtonStyle(duration, '6M', true)} onClick={() => setDuration('6M')}>6個月</button>
+              <button className={getButtonStyle(duration, '1Y', true)} onClick={() => setDuration('1Y')}>1年</button>
+              <button className={getButtonStyle(duration, 'All', true)} onClick={() => setDuration('All')}>全部</button>
             </div>
          </div>
 
          {/* --- NEW: Main Indicator Controls --- */}
-         <div className="flex flex-col md:flex-row flex-wrap gap-y-2 mb-4 items-center border-t pt-4 mt-4">
+         <div className="flex flex-col md:flex-row flex-wrap gap-y-2 mb-4 items-center border-t border-gray-700 pt-4 mt-4 text-gray-300">
             {/* Indicator Type Dropdown */}
             <div className="mr-4 mb-2 md:mb-0">
                  <label htmlFor="mainIndicatorSelect" className="text-sm font-medium mr-2">主圖指標:</label>
@@ -1169,7 +1202,7 @@ export default function MarketOverviewPage() {
                     id="mainIndicatorSelect"
                     value={mainIndicatorType}
                     onChange={(e) => setMainIndicatorType(e.target.value as MainIndicatorType)}
-                    className="p-1 border rounded text-sm bg-gray-50"
+                    className="p-1 border border-gray-600 rounded text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                  >
                     {Object.entries(indicatorLabels).map(([value, label]) => (
                         <option key={value} value={value}>{label}</option>
@@ -1178,15 +1211,15 @@ export default function MarketOverviewPage() {
             </div>
 
             {/* Indicator Period Buttons */}
-             {mainIndicatorType !== 'sar' && ( // SAR doesn't use periods in this implementation
+             {mainIndicatorType !== 'sar' && (
                  <div>
                      <span className="text-sm font-medium mr-2">週期:</span>
                      {availablePeriods.map(period => (
                          <button
                              key={period}
                              className={`px-2 py-1 rounded mr-2 text-xs ${activePeriods.includes(period)
-                                 ? 'bg-indigo-600 text-white'
-                                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                 ? 'bg-blue-600 text-white'
+                                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
                              onClick={() => handlePeriodToggle(period)}
                          >
                              {period}
@@ -1197,14 +1230,14 @@ export default function MarketOverviewPage() {
          </div>
 
         {/* --- NEW: Sub-Chart Controls --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 border-t pt-4 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 border-t border-gray-700 pt-4 mt-4 text-gray-300">
             <div>
                 <label htmlFor="subChart1Select" className="text-sm font-medium mr-2">副圖一 指標:</label>
                 <select
                     id="subChart1Select"
                     value={subChart1Indicator}
                     onChange={(e) => setSubChart1Indicator(e.target.value as SubIndicatorType)}
-                    className="p-1 border rounded text-sm bg-gray-50 w-full md:w-auto"
+                    className="p-1 border border-gray-600 rounded text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full md:w-auto"
                 >
                     {Object.entries(subIndicatorLabels).map(([value, label]) => (
                         <option key={value} value={value}>{label}</option>
@@ -1217,7 +1250,7 @@ export default function MarketOverviewPage() {
                     id="subChart2Select"
                     value={subChart2Indicator}
                     onChange={(e) => setSubChart2Indicator(e.target.value as SubIndicatorType)}
-                    className="p-1 border rounded text-sm bg-gray-50 w-full md:w-auto"
+                    className="p-1 border border-gray-600 rounded text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 w-full md:w-auto"
                 >
                     {Object.entries(subIndicatorLabels).map(([value, label]) => (
                         <option key={value} value={value}>{label}</option>
@@ -1227,42 +1260,42 @@ export default function MarketOverviewPage() {
         </div>
 
         {/* Main Chart Container (Adjust height ~45%) */}
-        <div className="relative h-[250px] mb-1"> 
+        <div className="relative h-[250px] mb-1">
           {chartRegistered && mainChartData.datasets && mainChartData.datasets[0].data && mainChartData.datasets[0].data.length > 0 ? (
-            <DynamicChart 
-              ref={mainChartRef} // Optional ref
+            <DynamicChart
+              ref={mainChartRef}
               type={chartType === 'area' ? 'line' : chartType}
-              data={mainChartData} 
-              options={mainChartOptions as ChartOptions} // Cast options
-            /> 
+              data={mainChartData}
+              options={mainChartOptions as ChartOptions}
+            />
           ) : (
-            <p>Loading main chart...</p>
+            <p className="text-gray-400 text-center pt-10">Loading main chart...</p>
           )}
         </div>
 
          {/* --- NEW: Sub Chart 1 Container --- */}
          <div className="relative h-[100px] mb-1">
             {chartRegistered && subChart1Data?.datasets?.length > 0 ? (
-                <DynamicChart 
-                   type={subChart1Indicator === 'macd' || subChart1Indicator === 'volume' ? 'bar' : 'line'} // Adjust base type
+                <DynamicChart
+                   type={subChart1Indicator === 'macd' || subChart1Indicator === 'volume' ? 'bar' : 'line'}
                    data={subChart1Data}
                    options={getSubChartOptions(subChart1Indicator) as ChartOptions}
                  />
             ) : (
-               <p>Loading {subIndicatorLabels[subChart1Indicator]} chart...</p>
+               <p className="text-gray-400 text-center pt-5">Loading {subIndicatorLabels[subChart1Indicator]} chart...</p>
              )}
          </div>
 
          {/* --- NEW: Sub Chart 2 Container --- */}
          <div className="relative h-[100px]">
             {chartRegistered && subChart2Data?.datasets?.length > 0 ? (
-                <DynamicChart 
-                   type={subChart2Indicator === 'macd' || subChart2Indicator === 'volume' ? 'bar' : 'line'} // Adjust base type
+                <DynamicChart
+                   type={subChart2Indicator === 'macd' || subChart2Indicator === 'volume' ? 'bar' : 'line'}
                    data={subChart2Data}
-                   options={getSubChartOptions(subChart2Indicator) as ChartOptions} // Apply options based on selection
+                   options={getSubChartOptions(subChart2Indicator) as ChartOptions}
                  />
             ) : (
-               <p>Loading {subIndicatorLabels[subChart2Indicator]} chart...</p>
+               <p className="text-gray-400 text-center pt-5">Loading {subIndicatorLabels[subChart2Indicator]} chart...</p>
              )}
          </div>
       </div>
