@@ -2,10 +2,10 @@ import React from 'react';
 
 export default function NotFound() {
   return (
-    React.createElement('div', null,
-      React.createElement('h1', null, '404'),
-      React.createElement('p', null, '找不到頁面'),
-      React.createElement('a', { href: '/' }, '返回首頁')
-    )
+    <div>
+      <h1>404</h1>
+      <p>找不到頁面</p>
+      <a href="/">返回首頁</a>
+    </div>
   );
 } 
