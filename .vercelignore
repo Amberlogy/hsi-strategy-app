@@ -1,0 +1,13 @@
+backend/
+tests/
+*.py
+*.pyc
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+requirements.txt
+README.md
+README_*.md
+.env.template
+.pre-commit-config.yaml
+Makefile 
