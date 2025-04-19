@@ -8,23 +8,66 @@ export default function GlobalError({
 }) {
   return (
     <html lang="zh-Hant">
+      <head>
+        <title>系統錯誤</title>
+      </head>
       <body>
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-          <div className="p-8 bg-white rounded-lg shadow-md max-w-md w-full">
-            <h1 className="text-4xl font-bold text-gray-700 mb-4">系統錯誤</h1>
-            <p className="text-gray-600 mb-6">
-              很抱歉，系統發生了錯誤。我們已記錄此問題並將盡快修復。
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          padding: '20px',
+          backgroundColor: '#f5f5f5',
+        }}>
+          <div style={{
+            maxWidth: '500px',
+            width: '100%',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '30px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            textAlign: 'center',
+          }}>
+            <h1 style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#333',
+              marginBottom: '16px',
+            }}>系統錯誤</h1>
+            <p style={{
+              color: '#666',
+              marginBottom: '24px',
+            }}>很抱歉，系統發生了錯誤。請嘗試重新載入頁面。</p>
+            <div>
               <button
                 onClick={reset}
-                className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  marginRight: '8px',
+                  fontWeight: '500',
+                }}
               >
                 重試
               </button>
               <a
                 href="/"
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-colors text-center"
+                style={{
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                  fontWeight: '500',
+                }}
               >
                 返回首頁
               </a>
