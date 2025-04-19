@@ -1,13 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  swcMinify: true,
   output: 'standalone',
   images: {
     unoptimized: true,
-    domains: ['via.placeholder.com'],
   },
-  distDir: '.next',
   typescript: {
     // !! 警告 !!
     // 在生產環境中會忽略類型錯誤

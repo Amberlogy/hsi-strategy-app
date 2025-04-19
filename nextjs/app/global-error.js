@@ -1,3 +1,5 @@
+'use client';
+
 // 這是Next.js的特殊文件，用於捕獲並顯示全局錯誤
 // 它必須是客戶端組件
 export default function GlobalError({
