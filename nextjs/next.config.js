@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
-  images: {
-    unoptimized: true,
+  experimental: {
+    appDir: true,
   },
   typescript: {
     // !! 警告 !!
@@ -14,10 +13,6 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   // 強制所有頁面使用客戶端渲染
-  experimental: {
-    appDir: true,
-  },
-  // 確保所有頁面都是客戶端渲染
   swcMinify: true,
   // 明確設置渲染模式
   runtime: 'nodejs',
